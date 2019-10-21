@@ -32,7 +32,6 @@ router.get("/me", auth, async (req, res) => {
  * @desc Create / update user profile
  * @access Private
  */
-
 router.post(
   "/",
   [
@@ -342,5 +341,81 @@ router.delete("/education/:edu_id", auth, async (req, res) => {
     res.send("Server error");
   }
 });
+
+/**
+ * @route PATCH api/profile/education/:edu_id
+ * @desc Update education
+ * @access Private
+ */
+
+router.patch(
+  "/education/:edu_id",
+  [
+    auth,
+    [
+      check("school", "School is required")
+        .not()
+        .isEmpty(),
+      check("degree", "Degree is required")
+        .not()
+        .isEmpty(),
+      check("fieldOfStudy", "Field of study is required")
+        .not()
+        .isEmpty(),
+      check("from", "From date is required")
+        .not()
+        .isEmpty()
+    ]
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const {
+      school,
+      degree,
+      fieldOfStudy,
+      from,
+      to,
+      current,
+      description
+    } = req.body;
+
+    // build education object
+    const updatedEdu = {
+      school,
+      degree,
+      fieldOfStudy,
+      from,
+      to,
+      current,
+      description
+    };
+
+    try {
+      const updatedProfile = await Profile.updateOne(
+        {
+          user: req.user.id,
+          "education._id": req.params.edu_id
+        },
+        {
+          $set: {
+            "education.$": updatedEdu
+          }
+        },
+        {
+          new: true
+        }
+      );
+
+      res.json(updatedProfile);
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Server error");
+    }
+  }
+);
 
 module.exports = router;
